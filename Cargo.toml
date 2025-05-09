@@ -1,0 +1,10 @@
+[workspace]
+
+members = [
+    "helium-core",
+    "helium-api",
+    "helium-ui",
+    "helium-app",
+]
+default-members = ["helium-app"]
+resolver = "2"

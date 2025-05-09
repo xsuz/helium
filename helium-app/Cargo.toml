@@ -1,0 +1,17 @@
+[package]
+name = "helium-app"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+eframe = "0.31.1"
+egui = "0.31.1"
+
+[dependencies.helium-core]
+path = "../helium-core"
+
+[dependencies.helium-api]
+path = "../helium-api"
+
+[dependencies.helium-ui]
+path = "../helium-ui"

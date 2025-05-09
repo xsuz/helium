@@ -1,0 +1,3 @@
+[submodule "helium-core"]
+	path = helium-core
+	url = https://github.com/xsuz/helium-core
