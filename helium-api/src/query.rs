@@ -1,7 +1,7 @@
 use std::sync::mpsc;
 
 use crate::backend::AppState;
-pub enum Command{
+pub enum Query{
     OpenPort(String),
     ClosePort,
     SendData(Vec<u8>),

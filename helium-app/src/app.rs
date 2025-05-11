@@ -1,5 +1,5 @@
-use helium_api::backend::{AppState,Helium};
-use helium_api::command::Command;
+use helium_api::backend::{AppState,HeliumBackend};
+use helium_api::query::Query;
 use helium_core::DataBase;
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
@@ -8,19 +8,21 @@ use helium_ui::{UI,SelectPortUI,ControlPanelUI};
 
 pub struct AppUI {
     database: Arc<Mutex<DataBase>>,
-    tx_command: mpsc::Sender<Command>,
+    tx_command: mpsc::Sender<Query>,
+    control_panel_ui: ControlPanelUI,
+    select_port_ui: SelectPortUI,
 }
 
 impl Default for AppUI {
     fn default() -> Self {
         let (tx_packet, rx_packet) = mpsc::channel::<(Vec<u8>, i64)>();
-        let (tx_command, rx_command) = mpsc::channel::<Command>();
+        let (tx_query, rx_query) = mpsc::channel::<Query>();
         let _handle = thread::spawn(move || {
-            let mut helium: Helium = Helium::new();
+            let mut helium_backend: HeliumBackend = HeliumBackend::new();
 
             loop {
-                helium.update(&tx_packet, &rx_command);
-                match &helium.get_state() {
+                helium_backend.update(&tx_packet, &rx_query);
+                match &helium_backend.get_state() {
                     AppState::Quit => break,
                     _ => {}
                 }
@@ -41,7 +43,9 @@ impl Default for AppUI {
 
         Self {
             database,
-            tx_command
+            tx_command: tx_query,
+            control_panel_ui: ControlPanelUI::new(),
+            select_port_ui: SelectPortUI{},
         }
     }
 }
@@ -51,7 +55,7 @@ impl eframe::App for AppUI {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             let (tx, rx) = mpsc::channel();
-            self.tx_command.send(Command::GetAppState(tx)).unwrap();
+            self.tx_command.send(Query::GetAppState(tx)).unwrap();
             if let Ok(state) = rx.recv() {
                 match state {
                     AppState::Quit => {
@@ -59,10 +63,10 @@ impl eframe::App for AppUI {
                         std::process::exit(0);
                     }
                     AppState::Unselect => {
-                        SelectPortUI.update(ctx, Some(ui), &self.database, &self.tx_command);
+                        self.select_port_ui.update(ctx, Some(ui), &self.database, &self.tx_command);
                     }
                     AppState::Logging => {
-                        ControlPanelUI.update(ctx, Some(ui), &self.database, &self.tx_command);
+                        self.control_panel_ui.update(ctx, Some(ui), &self.database, &self.tx_command);
                     }
                 }
             }
@@ -73,6 +77,6 @@ impl eframe::App for AppUI {
 
 impl Drop for AppUI {
     fn drop(&mut self) {
-        let _ = self.tx_command.send(Command::Quit);
+        let _ = self.tx_command.send(Query::Quit);
     }
 }

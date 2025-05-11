@@ -6,8 +6,6 @@ edition = "2024"
 [dependencies]
 serialport = "4.7.1"
 chrono = "0.4.38"
-dirs = "5.0.1"
-nalgebra = "0.32.6"
 
 [dependencies.helium-core]
 path = "../helium-core"

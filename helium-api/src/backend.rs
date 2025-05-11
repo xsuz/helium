@@ -1,4 +1,4 @@
-use crate::command::Command;
+use crate::query::Query;
 use helium_core::cobs;
 use std::sync::mpsc;
 use std::io::prelude::*;
@@ -11,33 +11,33 @@ pub enum AppState{
     Quit,
 }
 
-pub struct Helium {
+pub struct HeliumBackend {
     log: Vec<u8>,
     port: Option<Box<dyn serialport::SerialPort>>,
     state:AppState
 }
 
-impl Helium {
+impl HeliumBackend {
     pub fn new() -> Self {
         std::fs::create_dir_all(format!("log/{}",chrono::Local::now().format("%m%d"))).unwrap();
-        Helium {
+        HeliumBackend {
             log: Vec::new(),
             port: None,
             state: AppState::Unselect
         }
     }
 
-    pub fn update(&mut self, tx_packet: &mpsc::Sender<(Vec<u8>,i64)>, rx_cmd: &mpsc::Receiver<Command>) {
+    pub fn update(&mut self, tx_packet: &mpsc::Sender<(Vec<u8>,i64)>, rx_query: &mpsc::Receiver<Query>) {
         
-        if let Ok(cmd) = rx_cmd.recv() {
-            match cmd {
-                Command::OpenPort(port) => self.open_port(port.as_str()),
-                Command::ClosePort => self.close_port(),
-                Command::SendData(data) => self.send(&data),
-                Command::Quit=>{
+        if let Ok(query) = rx_query.recv() {
+            match query {
+                Query::OpenPort(port) => self.open_port(port.as_str()),
+                Query::ClosePort => self.close_port(),
+                Query::SendData(data) => self.send(&data),
+                Query::Quit=>{
                     self.state=AppState::Quit;
                 },
-                Command::GetSerialPort(handler)=>{
+                Query::GetSerialPort(handler)=>{
                     if let Ok(list)=serialport::available_ports(){
                         let list=list.iter().map(|info|info.port_name.clone()).collect();
                         handler.send(list).unwrap();
@@ -45,7 +45,7 @@ impl Helium {
                         handler.send(vec![]).unwrap();
                     }
                 },
-                Command::GetAppState(handler)=>{
+                Query::GetAppState(handler)=>{
                     handler.send(self.get_state()).unwrap();
                 }
             }
@@ -61,8 +61,6 @@ impl Helium {
                         while decoded.len() > 0 {
                             let timestamp = chrono::Utc::now().timestamp_millis();
                             tx_packet.send((decoded.clone(), timestamp)).unwrap();
-
-                            let timestamp = chrono::Utc::now().timestamp_millis();
 
                             let mut file = OpenOptions::new()
                                 .write(true)
@@ -124,6 +122,7 @@ impl Helium {
     pub fn close_port(&mut self) {
         if let Some(port) = self.port.take() {
             drop(port);
+            self.log.clear();
             self.state = AppState::Unselect;
             println!("Port closed");
         } else {

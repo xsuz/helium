@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 eframe = "0.31.1"
 egui = "0.31.1"
+egui_plot = "0.32.1"
 
 [dependencies.helium-core]
 path = "../helium-core"

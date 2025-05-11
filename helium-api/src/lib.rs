@@ -1,5 +1,5 @@
 pub mod backend;
-pub mod command;
+pub mod query;
 
 #[cfg(test)]
 mod tests {
