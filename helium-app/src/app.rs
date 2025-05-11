@@ -1,10 +1,11 @@
-use helium_api::backend::{AppState,HeliumBackend};
+use helium_api::backend::{AppState, HeliumBackend};
 use helium_api::query::Query;
 use helium_core::DataBase;
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 
-use helium_ui::{UI,SelectPortUI,ControlPanelUI};
+use eframe::egui::{self, FontData, FontDefinitions, FontFamily};
+use helium_ui::{ControlPanelUI, SelectPortUI, UI};
 
 pub struct AppUI {
     database: Arc<Mutex<DataBase>>,
@@ -45,14 +46,33 @@ impl Default for AppUI {
             database,
             tx_command: tx_query,
             control_panel_ui: ControlPanelUI::new(),
-            select_port_ui: SelectPortUI{},
+            select_port_ui: SelectPortUI {},
         }
     }
 }
 
-
 impl eframe::App for AppUI {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let mut fonts = FontDefinitions::default();
+        fonts.font_data.insert(
+            "NotoSansJP-Regular".to_owned(),
+            FontData::from_static(include_bytes!("../../assets/fonts/NotoSansJP-Regular.ttf")).into(),
+        );
+        fonts
+            .families
+            .get_mut(&FontFamily::Proportional)
+            .unwrap()
+            .insert(0, "NotoSansJP-Regular".to_owned());
+
+        // Put my font as last fallback for monospace:
+        fonts
+            .families
+            .get_mut(&FontFamily::Monospace)
+            .unwrap()
+            .push("NotoSansJP-Regular".to_owned());
+        
+        ctx.set_fonts(fonts);
+
         egui::CentralPanel::default().show(ctx, |ui| {
             let (tx, rx) = mpsc::channel();
             self.tx_command.send(Query::GetAppState(tx)).unwrap();
@@ -63,10 +83,16 @@ impl eframe::App for AppUI {
                         std::process::exit(0);
                     }
                     AppState::Unselect => {
-                        self.select_port_ui.update(ctx, Some(ui), &self.database, &self.tx_command);
+                        self.select_port_ui
+                            .update(ctx, Some(ui), &self.database, &self.tx_command);
                     }
                     AppState::Logging => {
-                        self.control_panel_ui.update(ctx, Some(ui), &self.database, &self.tx_command);
+                        self.control_panel_ui.update(
+                            ctx,
+                            Some(ui),
+                            &self.database,
+                            &self.tx_command,
+                        );
                     }
                 }
             }

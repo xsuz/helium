@@ -8,6 +8,7 @@ use crate::sensor_ui;
 pub struct ControlPanelUI{
     altitude_ui: sensor_ui::AltitudeUI,
     barometer_ui: sensor_ui::BarometerUI,
+    gps_ui: sensor_ui::GPSUI,
 }
 
 impl ControlPanelUI {
@@ -15,6 +16,7 @@ impl ControlPanelUI {
         ControlPanelUI {
             altitude_ui: sensor_ui::AltitudeUI::new(),
             barometer_ui: sensor_ui::BarometerUI::new(),
+            gps_ui: sensor_ui::GPSUI::new(),
         }
     }
 }
@@ -33,6 +35,7 @@ impl UI for ControlPanelUI {
             }
             self.altitude_ui.update(ctx, None, database, tx_command);
             self.barometer_ui.update(ctx, None, database, tx_command);
+            self.gps_ui.update(ctx, None, database, tx_command);
         }
     }
 }
