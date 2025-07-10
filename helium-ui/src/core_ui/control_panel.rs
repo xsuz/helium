@@ -5,7 +5,8 @@ use std::sync::{Arc, Mutex, mpsc};
 
 use crate::sensor_ui;
 
-pub struct ControlPanelUI{
+pub struct ControlPanelUI {
+    database: Option<Arc<Mutex<DataBase>>>,
     altitude_ui: sensor_ui::AltitudeUI,
     barometer_ui: sensor_ui::BarometerUI,
     gps_ui: sensor_ui::GPSUI,
@@ -16,6 +17,7 @@ pub struct ControlPanelUI{
 impl ControlPanelUI {
     pub fn new() -> Self {
         ControlPanelUI {
+            database: None,
             altitude_ui: sensor_ui::AltitudeUI::new(),
             barometer_ui: sensor_ui::BarometerUI::new(),
             gps_ui: sensor_ui::GPSUI::new(),
@@ -25,23 +27,29 @@ impl ControlPanelUI {
     }
 }
 
-impl UI for ControlPanelUI {
-    fn update(
+impl ControlPanelUI {
+    pub fn update(
         &mut self,
         ctx: &egui::Context,
         ui: Option<&mut egui::Ui>,
-        database: &Arc<Mutex<DataBase>>,
         tx_command: &mpsc::Sender<Query>,
     ) {
-        if let Some(ui) = ui {
-            if ui.button("Stop logging").clicked() {
-                tx_command.send(Query::ClosePort).unwrap();
+        let (tx, rx) = mpsc::channel();
+        tx_command.send(Query::GetDataBase(tx)).unwrap();
+        if let Ok(db) = rx.recv() {
+            self.database = Some(db);
+        }
+        if let Some(database) = &self.database {
+            if let Some(ui) = ui {
+                if ui.button("Stop logging").clicked() {
+                    tx_command.send(Query::ClosePort).unwrap();
+                }
+                self.altitude_ui.update(ctx, None, database, tx_command);
+                self.barometer_ui.update(ctx, None, database, tx_command);
+                self.gps_ui.update(ctx, None, database, tx_command);
+                self.pitot_ui.update(ctx, None, database, tx_command);
+                self.servo_ui.update(ctx, None, database, tx_command);
             }
-            self.altitude_ui.update(ctx, None, database, tx_command);
-            self.barometer_ui.update(ctx, None, database, tx_command);
-            self.gps_ui.update(ctx, None, database, tx_command);
-            self.pitot_ui.update(ctx, None, database, tx_command);
-            self.servo_ui.update(ctx, None, database, tx_command);
         }
     }
 }

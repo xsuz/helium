@@ -10,7 +10,7 @@ pub struct PitotUI {
 impl PitotUI {
     pub fn new() -> Self {
         Self {
-            cursor: Cursor::new(30000, 0, None),
+            cursor: Cursor::new(300.0 as i64 * 1000, 0),
         }
     }
 }
@@ -38,14 +38,18 @@ impl UI for PitotUI {
                         "IAS:\t{:2.2}m/s\ttimestamp:\t{}ms",
                         pitot_data.velocity, pitot_data.timestamp
                     ));
-                    if db.pitot.data.len() > 100 {
+                    if db.pitot.data.len() > 1 {
+                        let utc_now = chrono::Utc::now().timestamp_millis();
+                        self.cursor.update(&db.pitot, Some(utc_now));
                         egui_plot::Plot::new("velocity")
                             .legend(egui_plot::Legend::default())
                             .show(ui, |plt_ui| {
                                 let point_ias: egui_plot::PlotPoints = db.pitot.data
                                     [self.cursor.index..]
                                     .iter()
-                                    .map(|(_data, utc)| [*utc as f64, _data.velocity as f64])
+                                    .map(|(_data, utc)| {
+                                        [(*utc-utc_now) as f64 / 1000.0, _data.velocity as f64]
+                                    })
                                     .collect();
 
                                 plt_ui.line(
@@ -53,6 +57,11 @@ impl UI for PitotUI {
                                         .color(egui::Color32::from_rgb(255, 0, 0))
                                         .fill(0.0),
                                 );
+
+                                plt_ui.set_plot_bounds(egui_plot::PlotBounds::from_min_max(
+                                    [-self.cursor.range as f64 / 1000.0, 10.0],
+                                    [0.0, 40.0],
+                                ));
                             });
                     }
                 });

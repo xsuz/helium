@@ -1,4 +1,4 @@
-use eframe::egui::{self, IconData};
+use eframe::egui::{self, IconData, FontData, FontDefinitions, FontFamily};
 
 mod app;
 
@@ -16,6 +16,27 @@ pub fn main() -> Result<(), eframe::Error> {
         "Meister App",
         options,
         Box::new(|cc| {
+            let mut fonts = FontDefinitions::default();
+            fonts.font_data.insert(
+                "NotoSansJP-Regular".to_owned(),
+                FontData::from_static(include_bytes!("../../assets/fonts/NotoSansJP-Regular.ttf"))
+                    .into(),
+            );
+            fonts
+                .families
+                .get_mut(&FontFamily::Proportional)
+                .unwrap()
+                .insert(0, "NotoSansJP-Regular".to_owned());
+
+            // Put my font as last fallback for monospace:
+            fonts
+                .families
+                .get_mut(&FontFamily::Monospace)
+                .unwrap()
+                .push("NotoSansJP-Regular".to_owned());
+
+            cc.egui_ctx.set_fonts(fonts);
+            
             egui_extras::install_image_loaders(&cc.egui_ctx);
             Ok(Box::<AppUI>::default())
         }),

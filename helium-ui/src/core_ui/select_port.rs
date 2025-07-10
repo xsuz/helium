@@ -1,16 +1,13 @@
-use crate::UI;
 use helium_api::query::Query;
-use helium_core::DataBase;
-use std::sync::{Arc, Mutex, mpsc};
+use std::sync::mpsc;
 
 pub struct SelectPortUI;
 
-impl UI for SelectPortUI {
-    fn update(
+impl SelectPortUI {
+    pub fn update(
         &mut self,
         _ctx: &egui::Context,
         ui: Option<&mut egui::Ui>,
-        _database: &Arc<Mutex<DataBase>>,
         tx_command: &mpsc::Sender<Query>,
     ) {
         if let Some(ui) = ui {

@@ -1,14 +1,12 @@
 use helium_api::backend::{AppState, HeliumBackend};
 use helium_api::query::Query;
-use helium_core::DataBase;
-use std::sync::{Arc, Mutex, mpsc};
+use std::sync::mpsc;
 use std::thread;
 
-use eframe::egui::{self, FontData, FontDefinitions, FontFamily};
-use helium_ui::{ControlPanelUI, SelectPortUI, UI};
+use eframe::egui;
+use helium_ui::{ControlPanelUI, SelectPortUI};
 
 pub struct AppUI {
-    database: Arc<Mutex<DataBase>>,
     tx_command: mpsc::Sender<Query>,
     control_panel_ui: ControlPanelUI,
     select_port_ui: SelectPortUI,
@@ -16,34 +14,20 @@ pub struct AppUI {
 
 impl Default for AppUI {
     fn default() -> Self {
-        let (tx_packet, rx_packet) = mpsc::channel::<(Vec<u8>, i64)>();
         let (tx_query, rx_query) = mpsc::channel::<Query>();
-        let _handle = thread::spawn(move || {
+        let _ = thread::spawn(move || {
             let mut helium_backend: HeliumBackend = HeliumBackend::new();
 
             loop {
-                helium_backend.update(&tx_packet, &rx_query);
+                helium_backend.update(&rx_query);
                 match &helium_backend.get_state() {
                     AppState::Quit => break,
                     _ => {}
                 }
             }
         });
-        let database: Arc<Mutex<DataBase>> = Arc::new(Mutex::new(DataBase::new()));
-
-        thread::spawn({
-            let database = Arc::clone(&database);
-            move || {
-                for (decoded, timestamp) in rx_packet {
-                    if let Ok(mut data) = database.lock() {
-                        data.update(&decoded, Some(timestamp));
-                    }
-                }
-            }
-        });
 
         Self {
-            database,
             tx_command: tx_query,
             control_panel_ui: ControlPanelUI::new(),
             select_port_ui: SelectPortUI {},
@@ -53,25 +37,6 @@ impl Default for AppUI {
 
 impl eframe::App for AppUI {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let mut fonts = FontDefinitions::default();
-        fonts.font_data.insert(
-            "NotoSansJP-Regular".to_owned(),
-            FontData::from_static(include_bytes!("../../assets/fonts/NotoSansJP-Regular.ttf")).into(),
-        );
-        fonts
-            .families
-            .get_mut(&FontFamily::Proportional)
-            .unwrap()
-            .insert(0, "NotoSansJP-Regular".to_owned());
-
-        // Put my font as last fallback for monospace:
-        fonts
-            .families
-            .get_mut(&FontFamily::Monospace)
-            .unwrap()
-            .push("NotoSansJP-Regular".to_owned());
-        
-        ctx.set_fonts(fonts);
 
         egui::CentralPanel::default().show(ctx, |ui| {
             let (tx, rx) = mpsc::channel();
@@ -83,20 +48,15 @@ impl eframe::App for AppUI {
                         std::process::exit(0);
                     }
                     AppState::Unselect => {
-                        self.select_port_ui
-                            .update(ctx, Some(ui), &self.database, &self.tx_command);
+                        self.select_port_ui.update(ctx, Some(ui), &self.tx_command);
                     }
                     AppState::Logging => {
-                        self.control_panel_ui.update(
-                            ctx,
-                            Some(ui),
-                            &self.database,
-                            &self.tx_command,
-                        );
+                        self.control_panel_ui
+                            .update(ctx, Some(ui), &self.tx_command);
                     }
                 }
             }
-            ctx.request_repaint_after(std::time::Duration::from_millis(25));
+            ctx.request_repaint_after(std::time::Duration::from_millis(100));
         });
     }
 }
