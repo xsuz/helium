@@ -8,12 +8,14 @@ use eframe::egui::{self, Sense};
 
 pub struct ServoUI {
     cursor: Cursor,
+    range: i64,
 }
 
 impl ServoUI {
     pub fn new() -> Self {
         ServoUI {
             cursor: Cursor::new(30000, 0),
+            range: 30, // 30 seconds
         }
     }
 }
@@ -27,9 +29,7 @@ impl UI for ServoUI {
         _tx_command: &mpsc::Sender<Query>,
     ) {
         if let Ok(db) = database.lock() {
-            
             let utc_now = chrono::Utc::now().timestamp_millis();
-            self.cursor.update(&db.servo,Some(utc_now));
             if let Some((servo_data, _)) = db.servo.data.last() {
                 egui::Window::new("Servo").vscroll(true).show(ctx, |ui| {
                     egui::SidePanel::right("Servo_l_panel").show_inside(ui, |ui| {
@@ -62,70 +62,78 @@ impl UI for ServoUI {
                     });
 
                     egui::CentralPanel::default().show_inside(ui, |ui| {
+                        self.cursor.range = self.range * 1000;
+                        self.cursor.update(&db.servo, Some(utc_now));
                         egui_plot::Plot::new("servo")
                             .legend(egui_plot::Legend::default())
                             .show(ui, |plt_ui| {
-                                if db.servo.data.len() > 100 {
-                                    let point_servo: egui_plot::PlotPoints = db.servo.data
-                                        [self.cursor.index..]
-                                        .iter()
-                                        .map(|(data, time)| [(*time-utc_now) as f64/1000.0, data.rudder as f64])
-                                        .collect();
+                                let point_servo: egui_plot::PlotPoints = db.servo.data
+                                    [self.cursor.index..]
+                                    .iter()
+                                    .map(|(data, time)| {
+                                        [(*time - utc_now) as f64 / 1000.0, data.rudder as f64]
+                                    })
+                                    .collect();
 
-                                    plt_ui.line(
-                                        egui_plot::Line::new("rudder goal", point_servo)
-                                            .color(egui::Color32::from_rgb(0, 0, 255))
-                                            .fill(0.0),
-                                    );
-                                    
-                                    let point_servo: egui_plot::PlotPoints = db.servo.data
-                                        [self.cursor.index..]
-                                        .iter()
-                                        .map(|(data, time)| {
-                                            [(*time-utc_now) as f64/1000.0, data.position_rudder as f64]
-                                        })
-                                        .collect();
+                                plt_ui.line(
+                                    egui_plot::Line::new("rudder goal", point_servo)
+                                        .color(egui::Color32::from_rgb(0, 0, 255))
+                                        .fill(0.0),
+                                );
 
-                                    plt_ui.line(
-                                        egui_plot::Line::new("rudder position", point_servo)
-                                            .color(egui::Color32::from_rgb(0, 0, 127))
-                                            .name("rudder position")
-                                            .fill(0.0),
-                                    );
-                                    
-                                    let point_servo: egui_plot::PlotPoints = db.servo.data
-                                        [self.cursor.index..]
-                                        .iter()
-                                        .map(|(data, time)| [(*time-utc_now) as f64/1000.0, data.elevator as f64])
-                                        .collect();
+                                let point_servo: egui_plot::PlotPoints = db.servo.data
+                                    [self.cursor.index..]
+                                    .iter()
+                                    .map(|(data, time)| {
+                                        [
+                                            (*time - utc_now) as f64 / 1000.0,
+                                            data.position_rudder as f64,
+                                        ]
+                                    })
+                                    .collect();
 
-                                    plt_ui.line(
-                                        egui_plot::Line::new(
-                                            "elevator goal",
-                                            point_servo)
-                                            .color(egui::Color32::from_rgb(255, 0, 0))
-                                            .fill(0.0),
-                                    );
+                                plt_ui.line(
+                                    egui_plot::Line::new("rudder position", point_servo)
+                                        .color(egui::Color32::from_rgb(0, 0, 127))
+                                        .name("rudder position")
+                                        .fill(0.0),
+                                );
 
-                                    let point_servo: egui_plot::PlotPoints = db.servo.data
-                                        [self.cursor.index..]
-                                        .iter()
-                                        .map(|(data, time)| {
-                                            [(*time-utc_now) as f64/1000.0, data.position_elevator as f64]
-                                        })
-                                        .collect();
+                                let point_servo: egui_plot::PlotPoints = db.servo.data
+                                    [self.cursor.index..]
+                                    .iter()
+                                    .map(|(data, time)| {
+                                        [(*time - utc_now) as f64 / 1000.0, data.elevator as f64]
+                                    })
+                                    .collect();
 
-                                    plt_ui.line(
-                                        egui_plot::Line::new("elevator position", point_servo)
-                                            .color(egui::Color32::from_rgb(127, 0, 0))
-                                            .fill(0.0),
-                                    );
+                                plt_ui.line(
+                                    egui_plot::Line::new("elevator goal", point_servo)
+                                        .color(egui::Color32::from_rgb(255, 0, 0))
+                                        .fill(0.0),
+                                );
 
-                                    plt_ui.set_plot_bounds(egui_plot::PlotBounds::from_min_max(
-                                        [( - self.cursor.range) as f64/1000.0,90.0],
-                                        [0.0, 0.0],
-                                    ));
-                                }
+                                let point_servo: egui_plot::PlotPoints = db.servo.data
+                                    [self.cursor.index..]
+                                    .iter()
+                                    .map(|(data, time)| {
+                                        [
+                                            (*time - utc_now) as f64 / 1000.0,
+                                            data.position_elevator as f64,
+                                        ]
+                                    })
+                                    .collect();
+
+                                plt_ui.line(
+                                    egui_plot::Line::new("elevator position", point_servo)
+                                        .color(egui::Color32::from_rgb(127, 0, 0))
+                                        .fill(0.0),
+                                );
+
+                                plt_ui.set_plot_bounds(egui_plot::PlotBounds::from_min_max(
+                                    [(-self.cursor.range) as f64 / 1000.0, 90.0],
+                                    [0.0, 0.0],
+                                ));
                             });
                     });
 
@@ -208,6 +216,13 @@ impl UI for ServoUI {
                     ui.heading(format!("status:\t{}", servo_data.status));
                     ui.add_space(15.0);
                     ui.label(format!("time:\t{}", servo_data.timestamp));
+
+                    ui.add_space(15.0);
+                    ui.add(
+                        egui::Slider::new(&mut self.range, 10..=3600 * 2)
+                            .text("Range (seconds)")
+                            .logarithmic(true),
+                    )
                 });
             }
         }

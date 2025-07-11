@@ -6,12 +6,14 @@ use std::sync::{Arc, Mutex, mpsc};
 
 pub struct BarometerUI {
     cursor: Cursor,
+    range: i64,
 }
 
 impl BarometerUI {
     pub fn new() -> Self {
         BarometerUI {
-            cursor: Cursor::new(30000, 0),
+            cursor: Cursor::new(20.0 as i64 *1000, 0),
+            range: 20, // 20 seconds in milliseconds
         }
     }
 }
@@ -43,12 +45,16 @@ impl UI for BarometerUI {
                             barometer.temperature, timestamp
                         ));
                     }
+                    ui.add(
+                        egui::Slider::new(&mut self.range, 10..=3600*2).text("Range (seconds)").logarithmic(true)
+                    );
                 } else {
                     ui.label(
                         RichText::new("No barometer data available.").color(egui::Color32::RED),
                     );
                 }
 
+                self.cursor.range = self.range * 1000;
                 self.cursor.update(&db.barometer, Some(utc_now));
 
                 egui_plot::Plot::new("Barometer")
