@@ -1,6 +1,7 @@
 use eframe::egui::{self, IconData, FontData, FontDefinitions, FontFamily};
 
 mod app;
+mod ui;
 
 use crate::app::AppUI;
 

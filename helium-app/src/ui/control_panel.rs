@@ -1,9 +1,9 @@
-use crate::UI;
+use crate::ui::sensor_ui::UI;
 use helium_api::query::Query;
 use helium_core::DataBase;
 use std::sync::{Arc, Mutex, mpsc};
 
-use crate::sensor_ui;
+use crate::ui::sensor_ui;
 
 pub struct ControlPanelUI {
     database: Option<Arc<Mutex<DataBase>>>,

@@ -1,4 +1,4 @@
-use crate::UI;
+use crate::ui::sensor_ui::UI;
 use helium_api::query::Query;
 use helium_core::{Cursor, DataBase};
 use std::sync::{Arc, Mutex, mpsc};

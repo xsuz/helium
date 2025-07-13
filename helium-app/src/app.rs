@@ -1,10 +1,9 @@
-use helium_api::backend::{AppState, HeliumBackend};
-use helium_api::query::Query;
+use helium_api::{AppState,HeliumBackend,Query};
 use std::sync::mpsc;
 use std::thread;
 
 use eframe::egui;
-use helium_ui::{ControlPanelUI, SelectPortUI};
+use crate::ui::{ControlPanelUI, SelectPortUI};
 
 pub struct AppUI {
     tx_command: mpsc::Sender<Query>,

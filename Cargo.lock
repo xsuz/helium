@@ -1596,12 +1596,13 @@ dependencies = [
 name = "helium-app"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "eframe",
  "egui",
  "egui_extras",
+ "egui_plot",
  "helium-api",
  "helium-core",
- "helium-ui",
  "image",
 ]
 
@@ -1610,19 +1611,6 @@ name = "helium-core"
 version = "0.3.1"
 dependencies = [
  "serde",
-]
-
-[[package]]
-name = "helium-ui"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "eframe",
- "egui",
- "egui_plot",
- "helium-api",
- "helium-core",
- "image",
 ]
 
 [[package]]
