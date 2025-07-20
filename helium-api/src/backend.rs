@@ -7,6 +7,8 @@ use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::sync::{Arc, Mutex, mpsc};
 
+use log::{info,warn,error,debug};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum AppState {
     Unselect,
@@ -54,6 +56,7 @@ impl HeliumBackend {
                         let list = list.iter().map(|info| info.port_name.clone()).collect();
                         handler.send(list).unwrap();
                     } else {
+                        warn!("Failed to get available serial ports");
                         handler.send(vec![]).unwrap();
                     }
                 }
@@ -74,9 +77,12 @@ impl HeliumBackend {
                         let (mut decoded, mut rest) = cobs::decode(&self.log);
                         while decoded.len() > 0 {
                             let timestamp = chrono::Utc::now().timestamp_millis();
+                            
                             if let Ok(mut db) = self.database.lock() {
                                 db.update(&decoded, Some(timestamp));
                             }
+
+                            debug!("Decoded data: {:?}", decoded);
 
                             let mut file = OpenOptions::new()
                                 .write(true)
@@ -99,7 +105,7 @@ impl HeliumBackend {
 
                 Err(ref e) if e.kind() == std::io::ErrorKind::TimedOut => (),
                 Err(e) => {
-                    println!("{:?}", e);
+                    error!("Error reading from port: {}", e);
                     self.port = None;
                     self.state = AppState::Unselect;
                 }
@@ -109,10 +115,13 @@ impl HeliumBackend {
 
     pub fn send_data(&mut self, data: &Vec<u8>) {
         if let Some(port) = &mut self.port {
-            port.write_all(&cobs::encode(data)[..])
-                .expect("Failed to write to port");
+            if let Ok(_)=port.write_all(&cobs::encode(data)[..]){
+                info!("Data sent successfully: {:?}", data);
+            } else {
+                error!("Failed to send data: {:?}", data);
+            }
         } else {
-            println!("Port is not open");
+            warn!("No port is open to send data");
         }
     }
 
@@ -125,14 +134,17 @@ impl HeliumBackend {
                 Ok(port) => {
                     self.port = Some(port);
                     self.state = AppState::Logging;
-                    println!("Port opened: {}", port_name);
+                    info!("Port {} opened successfully", port_name);
                 }
                 Err(e) => {
-                    println!("Failed to open port: {}", e);
+                    error!("Failed to open port {}: {}", port_name, e);
+                    self.state = AppState::Unselect;
+                    self.port = None;
                 }
             }
         } else {
-            println!("Port is already open");
+            warn!("Port is already open");
+            self.state = AppState::Logging; // Keep the state as Logging if port is already open
         }
     }
     pub fn close_port(&mut self) {
@@ -140,9 +152,10 @@ impl HeliumBackend {
             drop(port);
             self.log.clear();
             self.state = AppState::Unselect;
-            println!("Port closed");
+            info!("Port closed successfully");
         } else {
-            println!("Port is not open");
+            warn!("No port is currently open to close");
+            self.state = AppState::Unselect; // Ensure state is set to Unselect if no port was open
         }
     }
 

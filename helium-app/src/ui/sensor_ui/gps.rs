@@ -98,6 +98,17 @@ impl GPSUI {
             .asin();
         (lat, lon)
     }
+
+    fn send_pos(&mut self,pos_gps:(f64,f64), tx_command: &mpsc::Sender<Query>) {
+        let (lat, lon) = pos_gps;
+        let mut bytes = [0u8; 32];
+        bytes[0] = 0x01; // message id
+        bytes[8..16].copy_from_slice(&lon.to_be_bytes());
+        bytes[16..24].copy_from_slice(&lat.to_be_bytes());
+        tx_command.send(Query::SendData(bytes.to_vec())).unwrap();
+        self.goal = Some((lat, lon));
+        self.pos = None; // Reset position after sending
+    }
 }
 
 impl UI for GPSUI {
@@ -133,17 +144,11 @@ impl UI for GPSUI {
                     if let Some(pos) = self.pos {
                         // https://www.trail-note.net/tech/coordinate/
 
-                        let (pos_lat, pos_lon) = self.pixel2gps(pos.0, pos.1);
+                        let pos_gps = self.pixel2gps(pos.0, pos.1);
 
                         // 目的地の設定
                         if ui.button("Set Goal").clicked() {
-                            self.goal = Some((pos_lat, pos_lon));
-                            self.pos = None;
-                            let mut bytes = [0u8; 32];
-                            bytes[0] = 0x01; // message id
-                            bytes[8..16].copy_from_slice(&pos_lon.to_be_bytes());
-                            bytes[16..24].copy_from_slice(&pos_lat.to_be_bytes());
-                            let _ = tx_command.send(Query::SendData(bytes.to_vec()));
+                            self.send_pos(pos_gps, tx_command);
                         }
                     }
                     if let Some((lat, lon)) = self.goal {
@@ -172,15 +177,15 @@ impl UI for GPSUI {
                     );
 
                     if ui.button("竹生島").clicked() {
-                        self.goal = Some(chikubushima_pos);
+                        self.send_pos(chikubushima_pos, tx_command);
                     }
 
                     if ui.button("沖島").clicked() {
-                        self.goal = Some(okishima_pos);
+                        self.send_pos(okishima_pos, tx_command);
                     }
 
                     if ui.button("パイロン(1km)").clicked() {
-                        self.goal = Some(pylon1km_pos);
+                        self.send_pos(pylon1km_pos, tx_command);
                     }
 
                     ui.add_space(20.0);

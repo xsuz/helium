@@ -6,6 +6,9 @@ mod ui;
 use crate::app::AppUI;
 
 pub fn main() -> Result<(), eframe::Error> {
+    // Initialize the logger
+    env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
+
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([640.0, 320.0])
