@@ -3,6 +3,10 @@ name = "helium-app"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "helium"
+path = "src/main.rs"
+
 [dependencies]
 eframe = "0.31.1"
 egui = "0.31.1"
@@ -15,6 +19,7 @@ env_logger = { version = "0.11.8",  features = [
     "auto-color",
     "humantime",
 ] }
+libc = "0.2.174"
 
 [dependencies.helium-core]
 path = "../helium-core"

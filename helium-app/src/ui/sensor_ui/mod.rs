@@ -1,5 +1,5 @@
 pub mod altitude;
-pub mod barometer;
+pub mod temperature;
 pub mod gps;
 pub mod pitot;
 pub mod servo;
@@ -9,7 +9,7 @@ use helium_core::DataBase;
 use helium_api::Query;
 
 pub use altitude::AltitudeUI;
-pub use barometer::BarometerUI;
+pub use temperature::TemperatureUI;
 pub use gps::GPSUI;
 pub use pitot::PitotUI;
 pub use servo::ServoUI;

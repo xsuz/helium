@@ -8,7 +8,7 @@ use crate::ui::sensor_ui;
 pub struct ControlPanelUI {
     database: Option<Arc<Mutex<DataBase>>>,
     altitude_ui: sensor_ui::AltitudeUI,
-    barometer_ui: sensor_ui::BarometerUI,
+    barometer_ui: sensor_ui::TemperatureUI,
     gps_ui: sensor_ui::GPSUI,
     pitot_ui: sensor_ui::PitotUI,
     servo_ui: sensor_ui::ServoUI,
@@ -19,7 +19,7 @@ impl ControlPanelUI {
         ControlPanelUI {
             database: None,
             altitude_ui: sensor_ui::AltitudeUI::new(),
-            barometer_ui: sensor_ui::BarometerUI::new(),
+            barometer_ui: sensor_ui::TemperatureUI::new(),
             gps_ui: sensor_ui::GPSUI::new(),
             pitot_ui: sensor_ui::PitotUI::new(),
             servo_ui: sensor_ui::ServoUI::new(),
